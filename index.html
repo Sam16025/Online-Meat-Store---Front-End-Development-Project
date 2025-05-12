@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Online Meat Store</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: url("images/meat-background.jpeg") no-repeat center center
+          fixed;
+        background-size: cover;
+        background-attachment: fixed;
+        position: relative;
+        color: white;
+      }
+
+      /* Semi-transparent overlay for readability */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: -1;
+      }
+
+      header {
+        background-color: rgba(211, 47, 47, 0.9);
+        color: white;
+        text-align: center;
+        padding: 20px;
+        border-bottom: 4px solid #b71c1c;
+      }
+
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .product {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        width: 240px;
+        margin: 10px;
+        padding: 15px;
+        text-align: center;
+        color: black;
+      }
+
+      .product img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+
+      .product h3 {
+        margin: 10px 0 5px;
+      }
+
+      .product p {
+        margin: 0 0 10px;
+      }
+
+      .btn {
+        background-color: #388e3c;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        background-color: #2e7d32;
+      }
+
+      #cart {
+        margin: 20px auto;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        max-width: 600px;
+        color: black;
+      }
+
+      #bill {
+        margin: 20px auto;
+        padding: 15px;
+        background: rgba(255, 243, 224, 0.95);
+        border: 1px solid #ffa726;
+        border-radius: 10px;
+        max-width: 600px;
+        text-align: center;
+        display: none;
+        color: black;
+      }
+
+      #qr {
+        margin-top: 15px;
+      }
+
+      select {
+        padding: 5px;
+        margin-top: 5px;
+      }
+
+      /* Card Details Form Styling */
+      #card-details {
+        margin: 15px 0;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        max-width: 500px;
+        color: black;
+        display: none;
+      }
+
+      #card-details input {
+        width: calc(100% - 20px);
+        padding: 8px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      #card-details label {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Online Meat Store</h1>
+    </header>
+
+    <div class="container" id="product-list">
+      <!-- Products will appear here -->
+    </div>
+
+    <div id="cart">
+      <h2>Cart</h2>
+      <ul id="cart-items"></ul>
+      <h3>Total: ₹<span id="total">0</span></h3>
+
+      <label for="payment">Choose Payment Method:</label>
+      <select id="payment" onchange="toggleCardDetails()">
+        <option value="Cash on Delivery">Cash on Delivery</option>
+        <option value="UPI">UPI</option>
+        <option value="Credit/Debit Card">Credit/Debit Card</option>
+      </select>
+
+      <!-- Credit/Debit Card Details Form -->
+      <div id="card-details">
+        <h3>Enter Card Details</h3>
+        <label for="cardholder-name">Cardholder Name</label>
+        <input type="text" id="cardholder-name" placeholder="John Doe" />
+        <label for="card-number">Card Number</label>
+        <input
+          type="text"
+          id="card-number"
+          placeholder="1234 5678 9012 3456"
+          maxlength="19"
+        />
+        <label for="expiry-date">Expiry Date</label>
+        <input type="text" id="expiry-date" placeholder="MM/YY" maxlength="5" />
+        <label for="cvv">CVV</label>
+        <input type="password" id="cvv" placeholder="123" maxlength="4" />
+      </div>
+
+      <br />
+      <button class="btn" onclick="generateBill()">Generate Bill</button>
+    </div>
+
+    <div id="bill">
+      <h2>Final Bill</h2>
+      <p id="bill-details"></p>
+      <div id="qr"></div>
+    </div>
+
+    <!-- Add this new block after the bill section -->
+    <div
+      id="payment-success"
+      style="
+        display: none;
+        margin: 20px auto;
+        padding: 15px;
+        background: rgba(232, 245, 233, 0.95);
+        border-radius: 10px;
+        max-width: 600px;
+        text-align: center;
+        color: black;
+      "
+    >
+      <h2>Payment Confirmation</h2>
+      <p id="payment-details"></p>
+    </div>
+
+    <script>
+      const products = [
+        {
+          name: "Chicken Breast",
+          price: 200,
+          image: "https://source.unsplash.com/featured/?chicken",
+        },
+        {
+          name: "Mutton Curry Cut",
+          price: 450,
+          image: "https://source.unsplash.com/featured/?mutton",
+        },
+        {
+          name: "Fish Fillet",
+          price: 300,
+          image: "https://source.unsplash.com/featured/?fish",
+        },
+        {
+          name: "Prawns",
+          price: 350,
+          image: "https://source.unsplash.com/featured/?prawns",
+        },
+        {
+          name: "Lamb Chops",
+          price: 500,
+          image: "https://source.unsplash.com/featured/?lamb",
+        },
+      ];
+
+      const productList = document.getElementById("product-list");
+      const cartItems = document.getElementById("cart-items");
+      const totalDisplay = document.getElementById("total");
+      const billDiv = document.getElementById("bill");
+      const billDetails = document.getElementById("bill-details");
+      const qrDiv = document.getElementById("qr");
+
+      let total = 0;
+      let selectedItems = [];
+
+      products.forEach((product, index) => {
+        const productDiv = document.createElement("div");
+        productDiv.classList.add("product");
+
+        productDiv.innerHTML = `
+          <img src="${product.image}" alt="${product.name}">
+          <h3>${product.name}</h3>
+          <p>Price: ₹${product.price}/kg</p>
+          <label for="qty-${index}">Qty:</label>
+          <select id="qty-${index}">
+            <option value="0.5">0.5 kg</option>
+            <option value="1">1 kg</option>
+            <option value="2">2 kg</option>
+          </select>
+          <br><br>
+          <button class="btn" onclick="addToCart(${index})">Add to Cart</button>
+        `;
+
+        productList.appendChild(productDiv);
+      });
+
+      function addToCart(index) {
+        const qty = parseFloat(document.getElementById(`qty-${index}`).value);
+        const product = products[index];
+        const priceForQty = product.price * qty;
+
+        const li = document.createElement("li");
+        li.textContent = `${product.name} - ${qty} kg - ₹${priceForQty.toFixed(
+          2
+        )}`;
+        cartItems.appendChild(li);
+
+        total += priceForQty;
+        totalDisplay.textContent = total.toFixed(2);
+
+        selectedItems.push(
+          `${product.name} (${qty} kg) - ₹${priceForQty.toFixed(2)}`
+        );
+      }
+
+      // Toggle card details visibility based on payment option
+      function toggleCardDetails() {
+        const paymentMethod = document.getElementById("payment").value;
+        const cardDetails = document.getElementById("card-details");
+        if (paymentMethod === "Credit/Debit Card") {
+          cardDetails.style.display = "block";
+        } else {
+          cardDetails.style.display = "none";
+        }
+      }
+
+      // Generate final bill and validate credit card details if needed
+      function generateBill() {
+        const paymentMethod = document.getElementById("payment").value;
+
+        if (selectedItems.length === 0) {
+          alert("Please add items to the cart before generating the bill.");
+          return;
+        }
+
+        // Handle card fields and validation
+        let cardholderName = "";
+        if (paymentMethod === "Credit/Debit Card") {
+          cardholderName = document
+            .getElementById("cardholder-name")
+            .value.trim();
+          const cardNumber = document
+            .getElementById("card-number")
+            .value.trim();
+          const expiryDate = document
+            .getElementById("expiry-date")
+            .value.trim();
+          const cvv = document.getElementById("cvv").value.trim();
+
+          if (!cardholderName || !cardNumber || !expiryDate || !cvv) {
+            alert("Please fill in all credit/debit card details.");
+            return;
+          }
+        }
+
+        // Show final bill
+        billDiv.style.display = "block";
+        billDetails.innerHTML = `
+    <strong>Items:</strong><br> ${selectedItems.join("<br>")} <br><br>
+    <strong>Total:</strong> ₹${total.toFixed(2)} <br>
+    <strong>Payment Method:</strong> ${paymentMethod} <br>
+    <br>✅ Thank you for shopping with us!
+  `;
+
+        // QR for UPI
+        if (paymentMethod === "UPI") {
+          qrDiv.innerHTML = `
+      <h3>Scan this QR to Pay</h3>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?data=upi://pay?pa=example@upi&pn=MeatShop&am=${total.toFixed(
+        2
+      )}&currency=INR&size=200x200" alt="UPI QR Code">
+    `;
+        } else {
+          qrDiv.innerHTML = "";
+        }
+
+        // Show card payment summary if card is used
+        const paymentSuccessDiv = document.getElementById("payment-success");
+        const paymentDetails = document.getElementById("payment-details");
+
+        if (paymentMethod === "Credit/Debit Card") {
+          paymentSuccessDiv.style.display = "block";
+          paymentDetails.innerHTML = `
+      <strong>Paid by:</strong> ${cardholderName}<br>
+      <strong>Total Paid:</strong> ₹${total.toFixed(2)}<br><br>
+      <strong>Items:</strong><br>${selectedItems.join("<br>")}
+    `;
+        } else {
+          paymentSuccessDiv.style.display = "none";
+        }
+      }
+    </script>
+  </body>
+</html>
